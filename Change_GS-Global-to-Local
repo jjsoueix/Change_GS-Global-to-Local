@@ -1,0 +1,40 @@
+<#	
+
+	.NOTES
+	===========================================================================
+	 Created on:   	25/07/2023 
+	 Created by:   	Jean-Jerome Soueix
+	 Organization:  Inserm	
+	 Filename:     	ChangeGS-Global-to-Local.ps1
+	===========================================================================
+	.DESCRIPTION
+		Le script a pour objectif de modifier tous les groupes de sécurité d'une OU d'un scope global vers local 
+	.EXEMPLE
+        
+
+#>
+
+
+# Définition de la portée Active Directory pour rechercher les groupes
+$searchBase = "OU=xxx"
+
+# Récupération de tous les groupes de sécurité dans l'unité organisationnelle spécifiée
+$groups = Get-ADGroup -Filter { GroupCategory -eq 'Security' } -SearchBase $searchBase
+
+# Boucle à travers tous les groupes de sécurité
+foreach ($group in $groups) {
+    # Vérifier si le nom du groupe commence par "Gp_Local_"
+    if ($group.Name -like "U_GS_L_Dir*") {
+        # Vérifier si le groupe est actuellement défini comme Global
+        if ($group.GroupScope -eq "Global") {
+            # Transformer le groupe de Global à Local
+            Set-ADGroup -Identity $group.DistinguishedName -GroupScope "Universal"
+            Set-ADGroup -Identity $group.DistinguishedName -GroupScope "DomainLocal"
+            Write-Host "Le groupe $($group.Name) a été transformé en Local."
+        } else {
+            Write-Host "Le groupe $($group.Name) est déjà défini comme Local."
+        }
+    } else {
+        Write-Host "Le groupe $($group.Name) ne répond pas au critère de nom (U_GS_L_Dir_)."
+    }
+}
